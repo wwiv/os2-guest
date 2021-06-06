@@ -17,16 +17,18 @@ if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.2)
    message(FATAL_ERROR "Require at least gcc-9.2; found: ${CMAKE_CXX_COMPILER_VERSION}")
 endif() 
 
-add_library(os2-guest-lib
-	    copyPasteCompat.c
-	    backdoor/backdoor.c
-	    backdoor/backdoorGcc32.c
-	    hostinfoHV.c
+add_library(ovt
+	    ovt/cp/copyPasteCompat.c
+	    ovt/backdoor/backdoor.c
+	    ovt/backdoor/backdoorGcc32.c
+	    ovt/hostinfoHV.c
 )
 
-target_include_directories(os2-guest-lib PUBLIC include)
+target_include_directories(ovt PUBLIC ovt/include)
 
 add_executable(os2-guest os2-guest.c)
-target_link_libraries(os2-guest os2-guest-lib)
+
+target_include_directories(os2-guest PRIVATE ovt/cp)
+target_link_libraries(os2-guest ovt)
 
 
