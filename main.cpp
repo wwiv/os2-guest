@@ -1,7 +1,11 @@
 
 #include "copyPasteCompat.h"
+#include "copypaste.h"
 #include <stdint.h>
 #include <stdio.h>
+
+#define INCL_DOSPROCESS
+#include <os2.h>
 
 
 int main(int argc, char* argv[]) {
@@ -18,5 +22,11 @@ int main(int argc, char* argv[]) {
     CopyPaste_GetHostSelection(hclen, buf);
     fprintf(stdout, "Clipboard contents: \r\n%s\r\n", buf);
   }
+
+  StartCopyPasteThread();
+  for (;;) {
+    DosSleep(1000);
+  }
+  
   return 0;
 }
