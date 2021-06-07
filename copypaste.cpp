@@ -26,14 +26,18 @@
 #include <atomic>
 #include <cstdio>
 #include <cstring>
+#include <string>
+#include <string_view>
 #include <thread>
+
+// Logs at a higheer level than threshold will not be logged.
+static constexpr int LOG_THRESHOLD = 1;
 
 static constexpr int XPOS_IN_HOST = -100;
 static std::atomic<bool> stop_copy_thread;
 static std::thread copy_thread;
 
 enum class pointer_home_t { host, guest };
-static std::string contents;
 
 static HAB hab;
 static HMQ hmq;
@@ -43,62 +47,53 @@ static void log(const char* s) {
   fflush(stderr);
 }
 
-static void PointerInHost() {
-  fprintf(stderr, "PointerInHost\r\n");
-  fflush(stderr);
-}
-
-static void PointerInGuest() {
-  fprintf(stderr, "PointerInGuest\r\n");
-  fflush(stderr);
-}
-
-void GetClipboardFromContents() {
-  log(__PRETTY_FUNCTION__);
-  if (WinOpenClipbrd(hab)) {
-    log("WinOpenClipbrd: succeed");
-    ULONG fmtInfo = 0;
-    if (WinQueryClipbrdFmtInfo(hab, CF_TEXT, &fmtInfo)) {
-      log("Has text in clipboard");
-      char *text = (char*)WinQueryClipbrdData(hab, CF_TEXT);
-      log("after query clipboard");
-      if (text) {
-	log("after text check");
-	int len = strlen(text);
-	log("after strlen(text)");
-	fprintf(stderr, "Got Text: len: %d", len); fflush(stderr);
-	contents.assign(text);
-	log("contents assigned");
-      }
-    }
-    log("Closing Clipboard");
-    WinCloseClipbrd(hab);
+/**
+ * Log at log level lvl. 
+ * higher levels mean more logging.  Use 1-4.
+ */
+static void log(int lvl, const char* s) {
+  if (lvl < LOG_THRESHOLD) {
+    log(s);
   }
 }
 
-static void SetClipboardToContents(const std::string& c) {
-  log(__PRETTY_FUNCTION__);
+std::string GetClipboardFromContents() {
+  log(2,__PRETTY_FUNCTION__);
   if (WinOpenClipbrd(hab)) {
-    WinEmptyClipbrd(hab);
-
-    char* clipboard_data;
-    auto rc = DosAllocSharedMem((PPVOID)&clipboard_data,
-                NULL, c.size()+1, PAG_COMMIT | PAG_WRITE | OBJ_GIVEABLE);
-    if (rc == NO_ERROR) {
-      strcpy(clipboard_data, c.c_str());
-      fprintf(stderr, "Set Clipboard: '%s'", c.c_str());
-      WinSetClipbrdData(hab, (ULONG) clipboard_data, CF_TEXT, CFI_POINTER);
-    } else {
-      log("Failed to alloc shared memory for clipboard");
+    log(3,"WinOpenClipbrd: succeed");
+    ULONG fmtInfo = 0;
+    if (WinQueryClipbrdFmtInfo(hab, CF_TEXT, &fmtInfo)) {
+      log(4, "Has text in clipboard");
+      if (const char *text = (const char*)WinQueryClipbrdData(hab, CF_TEXT); text != nullptr) {
+	const int len = strlen(text);
+	std::string c(text);
+	WinCloseClipbrd(hab);
+	return c;
+	log(4, "contents assigned");
+      }
     }
+    log(4, "Closing Clipboard");
     WinCloseClipbrd(hab);
   } else {
     log("Failed to open Clipboard");
   }
+  return{};
 }
 
-static void SendClipboardToHost() {
-  log(__PRETTY_FUNCTION__);
+static void SetClipboardData(const char* clipboard_data) {
+  log(2, __PRETTY_FUNCTION__);
+  if (WinOpenClipbrd(hab)) {
+    WinEmptyClipbrd(hab);
+    WinSetClipbrdData(hab, (ULONG) clipboard_data, CF_TEXT, CFI_POINTER);
+    WinCloseClipbrd(hab);
+  } else {
+    log("Failed to open Clipboard");
+    DosFreeMem((PVOID) clipboard_data);
+  }
+}
+
+static void SendClipboardToHost(const std::string& contents) {
+  log(2, __PRETTY_FUNCTION__);
   uint32_t* p = (uint32_t*) contents.c_str();
   CopyPaste_SetSelLength(contents.size());
   for (int i = 0; i < contents.size(); i += sizeof(uint32_t)) {
@@ -111,7 +106,7 @@ static void CopyPasteHelperThread() {
   PTIB ptib;
   PPIB ppib;
 
-  log("1 :CopyPasteHelperThread");
+  log(2, __PRETTY_FUNCTION__);
   char buf[1024 + 4];
   int16_t host_x, host_y;
   pointer_home_t pointer_home{pointer_home_t::host};
@@ -123,30 +118,33 @@ static void CopyPasteHelperThread() {
   hab = WinInitialize(0L);
   hmq = WinCreateMsgQueue(hab, 0);
 
-  fprintf(stderr, "HAB: %d\r\nHMQ: %d\r\n", hab, hmq); fflush(stderr);
-
   for (;;) {
     PointerGetPos(&host_x, &host_y);
     // Handle moving between host and guest.
     if (host_x == XPOS_IN_HOST && pointer_home != pointer_home_t::host) {
       // Moved to the host
       pointer_home = pointer_home_t::host;
-      PointerInHost();
-      GetClipboardFromContents();
-      SendClipboardToHost();
-      // contents is now the clipboard
-
+      auto c = GetClipboardFromContents();
+      SendClipboardToHost(c);
     } else if (host_x != XPOS_IN_HOST && pointer_home != pointer_home_t::guest) {
       // Back to the guest
       pointer_home = pointer_home_t::guest;
-      PointerInGuest();
       if (int32_t hclen = CopyPaste_GetHostSelectionLen(); hclen > 0 && hclen <= 8196) {
-        log("Got Clipboard from host");
-	contents.resize(hclen + 21);
-	CopyPaste_GetHostSelection(hclen, &contents[0]);
-	contents.resize(hclen);
-	SetClipboardToContents(contents);
+        log(2, "Got Clipboard from host");
+	char* clipboard_data;
+	if (auto rc = DosAllocSharedMem((PPVOID)&clipboard_data,
+				    NULL, hclen+1, PAG_COMMIT | PAG_WRITE | OBJ_GIVEABLE); rc == NO_ERROR) {
+	  CopyPaste_GetHostSelection(hclen, clipboard_data);
+	  SetClipboardData(clipboard_data);
+	}
       }
+
+      // Fetch the max screen size for Y since OS/2's coordinates are cartesian
+      // (aka bottom right origin) And most others are not (top left origin)
+      // Set the guest pointer to match.
+      const auto y =  WinQuerySysValue(HWND_DESKTOP, SV_CYSCREEN) - host_y;
+      WinSetPointerPos(HWND_DESKTOP, host_x, y);
+
     }
 
     if (stop_copy_thread.load() == true) {
@@ -164,14 +162,14 @@ static void CopyPasteHelperThread() {
 }
 
 void StartCopyPasteThread() {
-  log(__PRETTY_FUNCTION__);
+  log(2, __PRETTY_FUNCTION__);
   stop_copy_thread.store(false);
   std::thread t(CopyPasteHelperThread);
   std::swap(copy_thread, t);
 }
 
 void StopCopyPasteThread() {
-  log(__PRETTY_FUNCTION__);
+  log(2, __PRETTY_FUNCTION__);
   stop_copy_thread.store(true);
   DosSleep(10);
   if (copy_thread.joinable()) {
