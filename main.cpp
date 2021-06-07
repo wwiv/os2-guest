@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define INCL_KBD
 #define INCL_DOSPROCESS
 #include <os2.h>
 
@@ -11,21 +12,17 @@
 int main(int argc, char* argv[]) {
   fprintf(stdout, "OS2 Guest Helper for VMWare.\r\n");
   
-  int32_t hclen = CopyPaste_GetHostSelectionLen();
-  fprintf(stdout, "Host copy len: %d\r\n", hclen);
-
-  if (hclen < 1024) {
-    char buf[1028];
-    if (hclen > 1024) {
-      hclen = 1024;
-    }
-    CopyPaste_GetHostSelection(hclen, buf);
-    fprintf(stdout, "Clipboard contents: \r\n%s\r\n", buf);
-  }
-
   StartCopyPasteThread();
+  KBDKEYINFO key{};
+
   for (;;) {
     DosSleep(1000);
+    KbdPeek(&key, 0);
+    if (key.fbStatus != 0) {
+      StopCopyPasteThread();
+      break;
+    }
+
   }
   
   return 0;
