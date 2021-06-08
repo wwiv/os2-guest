@@ -1,6 +1,6 @@
 /*                                                                      
  *   OS/2 Guest Tools for VMWare
- *   Copyright (C)1998-2021, Rushfan
+ *   Copyright (C)2021, Rushfan
  *
  *   Licensed  under the  Apache License, Version  2.0 (the "License");
  *   you may not use this  file  except in compliance with the License.
