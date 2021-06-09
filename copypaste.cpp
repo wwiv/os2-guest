@@ -118,6 +118,9 @@ static void CopyPasteHelperThread() {
   hab = WinInitialize(0L);
   hmq = WinCreateMsgQueue(hab, 0);
 
+  const auto max_y = WinQuerySysValue(HWND_DESKTOP, SV_CYSCREEN);
+  bool mouse_hidden = false;
+
   for (;;) {
     PointerGetPos(&host_x, &host_y);
     // Handle moving between host and guest.
@@ -126,6 +129,13 @@ static void CopyPasteHelperThread() {
       pointer_home = pointer_home_t::host;
       auto c = GetClipboardFromContents();
       SendClipboardToHost(c);
+
+      // Hide mouse if it's visible.
+      if (!mouse_hidden) {
+	WinShowPointer(HWND_DESKTOP, FALSE);
+	mouse_hidden = true;
+      }
+
     } else if (host_x != XPOS_IN_HOST && pointer_home != pointer_home_t::guest) {
       // Back to the guest
       pointer_home = pointer_home_t::guest;
@@ -142,9 +152,23 @@ static void CopyPasteHelperThread() {
       // Fetch the max screen size for Y since OS/2's coordinates are cartesian
       // (aka bottom right origin) And most others are not (top left origin)
       // Set the guest pointer to match.
-      const auto y =  WinQuerySysValue(HWND_DESKTOP, SV_CYSCREEN) - host_y;
+      const auto y =  max_y - host_y;
       WinSetPointerPos(HWND_DESKTOP, host_x, y);
+      
+      // Show mouse if it's hidden.
+      if (mouse_hidden) {
+	WinShowPointer(HWND_DESKTOP, TRUE);
+	mouse_hidden = false;
+      }
 
+    }
+
+    if (pointer_home == pointer_home_t::guest) {
+      // Grab the current position, flip it, and send to 
+      POINTL guest_pos{};
+      WinQueryPointerPos(HWND_DESKTOP, &guest_pos);
+      const auto y = max_y - guest_pos.y;
+      PointerSetPos(guest_pos.x, y);
     }
 
     if (stop_copy_thread.load() == true) {
@@ -153,7 +177,12 @@ static void CopyPasteHelperThread() {
     }
 
     // TODO - update guest location based on host position?
-    DosSleep(200);
+    DosSleep(100);
+  }
+
+  if (mouse_hidden) {
+    WinShowPointer(HWND_DESKTOP, TRUE);
+    mouse_hidden = false;
   }
 
   // Cleanup
