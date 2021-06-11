@@ -132,8 +132,8 @@ static void CopyPasteHelperThread() {
 
       // Hide mouse if it's visible.
       if (!mouse_hidden) {
-	WinShowPointer(HWND_DESKTOP, FALSE);
-	mouse_hidden = true;
+        WinShowPointer(HWND_DESKTOP, FALSE);
+        mouse_hidden = true;
       }
 
     } else if (host_x != XPOS_IN_HOST && pointer_home != pointer_home_t::guest) {
@@ -157,14 +157,14 @@ static void CopyPasteHelperThread() {
       
       // Show mouse if it's hidden.
       if (mouse_hidden) {
-	WinShowPointer(HWND_DESKTOP, TRUE);
-	mouse_hidden = false;
+        WinShowPointer(HWND_DESKTOP, TRUE);
+        mouse_hidden = false;
       }
 
     }
 
     if (pointer_home == pointer_home_t::guest) {
-      // Grab the current position, flip it, and send to 
+      // Grab the current position, flip it, and send to the host.
       POINTL guest_pos{};
       WinQueryPointerPos(HWND_DESKTOP, &guest_pos);
       const auto y = max_y - guest_pos.y;
@@ -176,7 +176,6 @@ static void CopyPasteHelperThread() {
       break;
     }
 
-    // TODO - update guest location based on host position?
     DosSleep(100);
   }
 

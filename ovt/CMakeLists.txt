@@ -15,5 +15,5 @@ add_library(ovt_copypaste
 	    cp/copyPasteCompat.cpp
 	    pointer.cpp
 )
-target_include_directories(ovt_copypaste PUBLIC include)
 
+target_include_directories(ovt_copypaste PUBLIC include)

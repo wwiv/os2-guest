@@ -8,6 +8,7 @@ project(os2-guest)
 set (CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# add_compile_options(-S)
 
 if (NOT OS2)
    message(FATAL_ERROR "This requires OS/2")
