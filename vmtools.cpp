@@ -118,7 +118,7 @@ int vmtools_daemon() {
   return 0;
 }
 
-void show_help() {
+int show_help() {
   fprintf(stderr,
     "Usage: \r\n"
     "  vmtools [args]\r\n\r\n"
@@ -128,6 +128,7 @@ void show_help() {
     "  -Q    Terminates daemon if any exists.\r\n"
     "  -?    Help - displays this information\r\n"
     "\r\n");
+  return 0;
 }
 
 int exit_app() {
@@ -149,9 +150,9 @@ int exit_app() {
 
 int main(int argc, char* argv[]) {
   fprintf(stdout, "VMTools: OS2 Guest for VMWare.\r\n"
-"See https://github.com/wwiv/os2-guest for more information.\r\n\r\n"
-"This program uses portions of [https://github.com/vmware/open-vm-tools]\r\n"
-"which are licensed under the GNU Lesser General Public Library, version 2.1\r\n");
+	  "See https://github.com/wwiv/os2-guest for more information.\r\n\r\n"
+	  "This program uses portions of [https://github.com/vmware/open-vm-tools]\r\n"
+	  "which are licensed under the GNU Lesser General Public Library, version 2.1\r\n");
 
   if (argc <= 1) {
     return vmtools_daemon();
@@ -163,27 +164,20 @@ int main(int argc, char* argv[]) {
     const char* arg = argv[i];
     const int alen = strlen(arg);
     if (!alen) {
-      //log("WARNING: Empty arg at position: %d", i);
       continue;
     }
     if (arg[0] == '-' || arg[0] == '/') {
       if (alen < 2) {
-	//log("Invalid argument: '%s'", arg);
 	continue;
       }
       // Process switch
       char schar = (char)toupper(*(arg+1));
       const char* sval = (arg+2);
-      // cerr << "Switch: " <<  schar << "; value: '" << sval << "'" << endl;
       switch (schar) {
-      case 'Q': {
-	exit_app();
-      } break;
-      case '?': {
-        // Help
-        show_help();
-        return 0;
-      } break;
+      case 'Q':
+	return exit_app();
+      case '?':
+        return show_help();
       }
       continue;
     }
