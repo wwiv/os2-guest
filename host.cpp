@@ -25,6 +25,8 @@
 // Use stdint.h vs. cstdint so types are in global namespace, not std::
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <iostream>
 
 
@@ -95,12 +97,20 @@ static void set_mouse_pos(int x, int y) {
   Backdoor2(BACKDOOR_CMD_SET_MOUSE_POS, pos);
 }
 
-static bool get_mouse_pos(int* x, int* y) {
+static bool get_mouse_pos(int16_t* x, int16_t* y) {
   uint32_t pos = Backdoor(BACKDOOR_CMD_GET_MOUSE_POS);
   *x = pos >> 16;
   *y = pos & 0xFFFF;
 
   return true;
+}
+
+static const int16_t XPOS_IN_HOST = -100;
+
+bool pointer_in_host(const host_point& pos) {
+  bool b = pos.x == XPOS_IN_HOST;
+  //printf("pointer_in_host [%d, %d]\r\n", pos.x, XPOS_IN_HOST);
+  return b;
 }
 
 Host::Host() {}
@@ -132,7 +142,6 @@ char* Host::clipboard() {
     std::cout << "alloc failed" << std::endl;
     return NULL;
   }
-  std::cout << "len: " << len << std::endl;
   char* b;
   APIRET rc = DosAllocSharedMem((PPVOID)&b,
 			     NULL, len+1, 
@@ -146,6 +155,7 @@ char* Host::clipboard() {
 }
 
 
+/*
 int main(int argc, char* argv) {
   Host b;
   char* clip =  b.clipboard();
@@ -165,7 +175,7 @@ int main(int argc, char* argv) {
   }
   std::cout << "end\r\n";
 }
-
+*/
 
 
 

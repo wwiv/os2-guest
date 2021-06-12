@@ -42,6 +42,8 @@ enum class pointer_home_t { host, guest };
 static HAB hab;
 static HMQ hmq;
 
+// Logs at a higheer level than threshold will not be logged.
+static constexpr int LOG_THRESHOLD = 1;
 static void log(const char* s) {
   fprintf(stderr, "%s\r\n", s);
   fflush(stderr);
@@ -124,7 +126,8 @@ static void CopyPasteHelperThread() {
   for (;;) {
     PointerGetPos(&host_x, &host_y);
     // Handle moving between host and guest.
-    if (host_x == XPOS_IN_HOST && pointer_home != pointer_home_t::host) {
+    if (host_x == XPOS_IN_HOST && 
+	pointer_home != pointer_home_t::host) {
       // Moved to the host
       pointer_home = pointer_home_t::host;
       auto c = GetClipboardFromContents();
@@ -136,7 +139,8 @@ static void CopyPasteHelperThread() {
         mouse_hidden = true;
       }
 
-    } else if (host_x != XPOS_IN_HOST && pointer_home != pointer_home_t::guest) {
+    } else if (host_x != XPOS_IN_HOST && 
+	       pointer_home != pointer_home_t::guest) {
       // Back to the guest
       pointer_home = pointer_home_t::guest;
       if (int32_t hclen = CopyPaste_GetHostSelectionLen(); hclen > 0 && hclen <= 8196) {
