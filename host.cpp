@@ -15,18 +15,18 @@
  *   language governing permissions and limitations under the License.
  */
 #include "host.h"
-#define INCL_DOSPROCESS
-#define INCL_ERRORS
-#include <os2.h>
-
-
 #include "backdoor.h"
+#include "log.h"
 
 // Use stdint.h vs. cstdint so types are in global namespace, not std::
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#define INCL_DOSPROCESS
+#define INCL_ERRORS
+#include <os2.h>
 
 
 /* From https://sites.google.com/site/chitchatvmback/backdoor
@@ -52,6 +52,7 @@
 
 
 void set_host_clipboard(char* buf, uint32_t len) {
+  LOG_FUNCTION();
   if (!buf) {
     return;
   }
@@ -90,6 +91,7 @@ bool Host::pointer(const host_point& pos) {
 }
 
 bool Host::clipboard(char* b) {
+  LOG_FUNCTION();
   if (!b) {
     return false;
   }
@@ -99,6 +101,7 @@ bool Host::clipboard(char* b) {
 }
 
 static void get_host_clipboard(int32_t len, char* buf) {
+  LOG_FUNCTION();
    uint32_t *current = (uint32_t *)buf;
    uint32_t const *end = current + (len + sizeof(uint32_t) - 1) / sizeof(uint32_t);
    for (; current < end; current++) {
@@ -109,9 +112,10 @@ static void get_host_clipboard(int32_t len, char* buf) {
 
 
 char* Host::clipboard() {
+  LOG_FUNCTION();
   const int32_t len = Backdoor(BACKDOOR_CMD_GET_CLIPBOARD_LEN);
   if (len <= 0) {
-    puts("alloc failed\r\n");
+    log(1, "failed to get clipboard len from host\r\n");
     return NULL;
   }
   char* buf;
@@ -119,7 +123,7 @@ char* Host::clipboard() {
 			     NULL, len+1, 
 			     PAG_COMMIT | PAG_WRITE | OBJ_GIVEABLE);
   if (rc != NO_ERROR) {
-    puts("alloc failed\r\n");
+    log(1, "alloc failed\r\n");
     return NULL;
   }
   get_host_clipboard(len, buf);

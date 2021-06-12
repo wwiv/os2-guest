@@ -16,6 +16,8 @@
  */
 #include "guest.h"
 
+#include "log.h"
+
 // Use stdint.h vs. cstdint so types are in global namespace, not std::
 #include <stdio.h>
 #include <stdint.h>
@@ -27,24 +29,6 @@
 #define INCL_ERRORS
 #include <os2.h>
 
-// Logs at a higheer level than threshold will not be logged.
-static const int LOG_THRESHOLD = 1;
-static void log(const char* s) {
-  fprintf(stderr, "%s\r\n", s);
-  fflush(stderr);
-}
-
-/**
- * Log at log level lvl. 
- * higher levels mean more logging.  Use 1-4.
- */
-static void log(int lvl, const char* s) {
-  if (lvl < LOG_THRESHOLD) {
-    log(s);
-  }
-}
-
-
 Guest::Guest() {
   PTIB ptib;
   PPIB ppib;
@@ -53,9 +37,16 @@ Guest::Guest() {
 
   // TODO(rushfan): Check for errors here.
   hab_ = WinInitialize(0L);
+  if (!hab_) {
+    log(0, "Failed to create HAB\r\n");
+  }
   hmq_ = WinCreateMsgQueue(hab_, 0);
+  if (!hmq_) {
+    log(0, "Failed to create HMQ\r\n");
+  }
 
   screen_max_y_ = WinQuerySysValue(HWND_DESKTOP, SV_CYSCREEN);
+  logf(2, "Screen size max y: [%d]\r\n", screen_max_y_);
 }
 
 Guest::~Guest() {
@@ -79,11 +70,17 @@ guest_point Guest::pointer() {
 
 /** Sets the guest pointer position */
 bool Guest::pointer(const guest_point& pos) {
-  WinSetPointerPos(HWND_DESKTOP, pos.x, pos.y);
+  if (!WinSetPointerPos(HWND_DESKTOP, pos.x, pos.y)) {
+    logf(0, "failed to set pointer pos: %d", WinGetLastError(hab_));
+  }
+  POINTL p2;
+  WinQueryPointerPos(HWND_DESKTOP, &p2);
+  logf(1, "new pos: [%d, %d]", p2.x, p2.y);
   return true;
 }
 
 bool Guest::pointer_visible(bool visible) {
+  logf(1, "Guest::pointer_visible(%s)", visible ? "true": "false");
   WinShowPointer(HWND_DESKTOP, visible ? TRUE : FALSE);
   return true;
 }
@@ -91,15 +88,15 @@ bool Guest::pointer_visible(bool visible) {
 
 /** Sets the guest clipboard contents or releases b if that fails. */
 bool Guest::clipboard(char* b) {
-  log(1, __FUNCTION__);
+  LOG_FUNCTION();
   if (WinOpenClipbrd(hab_)) {
-    log(1, "opened clipboard");
+    log(2, "opened clipboard");
     WinEmptyClipbrd(hab_);
     WinSetClipbrdData(hab_, (ULONG) b, CF_TEXT, CFI_POINTER);
     WinCloseClipbrd(hab_);
     return true;
   }
-  log("Failed to open Clipboard");
+  log(0, "Failed to open Clipboard");
   DosFreeMem((PVOID) b);
   return false;
 }
@@ -107,9 +104,9 @@ bool Guest::clipboard(char* b) {
 
 /** Gets the guest clipboard contents or NULL if none exist */
 char* Guest::clipboard() {
-  log(1, __FUNCTION__);
+  LOG_FUNCTION();
   if (!WinOpenClipbrd(hab_)) {
-    log("Failed to open Clipboard");
+    log(2, "Failed to open Clipboard");
     return NULL;
   }
   

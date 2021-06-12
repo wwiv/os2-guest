@@ -16,9 +16,12 @@
  */
 #include "guest.h"
 #include "host.h"
+#include "log.h"
+
 #include <ctype.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #define INCL_KBD
@@ -35,6 +38,7 @@
 #define NAME_SEG "\\SHAREMEM\\VMTOOLS.MEM"
 
 int vmtools_daemon() {
+  LOG_FUNCTION();
   printf("Press ESCAPE to exit.\r\nStarting Daemon...\r\n");
   char* shm = NULL;
   APIRET rc = DosAllocSharedMem((PVOID *) &shm,
@@ -43,7 +47,7 @@ int vmtools_daemon() {
 				PAG_READ | PAG_WRITE | PAG_COMMIT);
   if (rc != NO_ERROR) {
     // Unable to allocate shared memory
-    printf("Failed to allocate shared memory: %d\r\n", rc);
+    logf(0, "Failed to allocate shared memory: %d\r\n", rc);
     return 1;
   }
   
@@ -59,7 +63,7 @@ int vmtools_daemon() {
     KbdPeek(&key, 0);
     if (key.fbStatus != 0) {
       APIRET krc = KbdCharIn(&key, IO_WAIT, 0);
-      printf("got key: [%d]\r\n", key.chChar);
+      logf(4, "got key: [%d]\r\n", key.chChar);
       if (key.chChar == 27 /* ESC */) {
 	puts("Exiting...\r\n");
 	break;
@@ -67,53 +71,56 @@ int vmtools_daemon() {
     }
 
     hp = host.pointer();
-    //printf("pointer in host[%d], pointer_host[%d,%d]\r\n", 
-    //   pointer_in_host(hp), hp.x, hp.y);
+    logf(5, "pointer in host[%d], pointer_host[%d,%d]", 
+	 pointer_in_host(hp), hp.x, hp.y);
     if (pointer_in_host(hp) && !pointer_host) {
-      printf("pointer back in host");
+      log(1, "pointer back in host");
       // Moved to the host
       pointer_host = true;
       char* c = guest.clipboard();
       if (c) {
-	//printf("Set host clipboard: [%s]\r\n", c);
+	logf(1, "Set host clipboard: [%s]", c);
 	host.clipboard(c);
       }
       // Hide mouse if it's visible.
       if (!mouse_hidden) {
-	puts("mouse hidden\r\n");
+	log(1, "mouse hidden\r\n");
 	guest.pointer_visible(false);
         mouse_hidden = true;
       }
     } else if (!pointer_in_host(hp) && pointer_host) {
-      puts("pointer back in guest\r\n");
+      log(1, "pointer back in guest");
       pointer_host = false;
-      // Set the guest pointer to match.
-      guest_point gp = guest.host_to_guest(hp);
-      guest.pointer(gp);
       if (mouse_hidden) {
 	guest.pointer_visible(true);
 	mouse_hidden = false;
       }
-
       char* c = host.clipboard();
       if (c) {
-	//printf("Set guest clipboard: [%s]\r\n", c);
+	logf(2, "Set guest clipboard: [%s]\r\n", c);
 	guest.clipboard(c);
       }
-    }
 
-    if (!pointer_host) {
+      // Set the guest pointer to match.
+      guest_point ogp = guest.pointer();
+      guest_point gp = guest.host_to_guest(hp);
+      guest.pointer(gp);
+      logf(1, "[guest] pointer moved from [%d,%d] to [%d,%d]\r\n", ogp.x, ogp.y, gp.x, gp.y);
+
+    } else if (!pointer_host) {
       // Grab the current position, flip it, and send to the host.
       guest_point gp = guest.pointer();
       host_point hp = guest.guest_to_host(gp);
       host.pointer(hp);
+      logf(1, "[guest]pointer[%d,%d]\r\n", 
+	  gp.x, gp.y);
     }
 
     // TODO check for shutdown signal if running as a daemon.
     if (shm != NULL)  {
       if (*shm == 'Q') {
 	// time to quit.
-	printf("Got signal to quit.\r\n");
+	log(0, "Got signal to quit.\r\n");
 	break;
       }
     } 
@@ -128,14 +135,16 @@ int vmtools_daemon() {
 }
 
 int show_help() {
-  fprintf(stderr,
+  printf(
     "Usage: \r\n"
     "  vmtools [args]\r\n\r\n"
     "Example: \r\n"
     "  vmtools\r\n\r\n"
     "Commands: \r\n"
-    "  -Q    Terminates daemon if any exists.\r\n"
-    "  -?    Help - displays this information\r\n"
+    "  -Q             Terminates daemon if any exists.\r\n"
+    "  -?             Help - displays this information\r\n"
+    "  -D#            Set debug level to # (from 1 to 4)r\n"
+    "  -L[FILENAME]   Log debug logs to filename [FILENAME]\r\n"
     "\r\n");
   return 0;
 }
@@ -146,10 +155,10 @@ int exit_app() {
 				   NAME_SEG,
 				   PAG_READ|PAG_WRITE);
   if (rc != NO_ERROR) {
-    printf("Failed to connect to SHM: %d\r\n", rc);
+    logf(0, "Failed to connect to SHM: %d\r\n", rc);
     return 1;
   }
-  printf("Sending quit signal.\r\n");
+  log(0, "Sending quit signal.\r\n");
 
   *shm = 'Q';
   DosSleep(1000);
@@ -158,11 +167,7 @@ int exit_app() {
 }
 
 int main(int argc, char* argv[]) {
-  fprintf(stdout, "vmtools: OS/2 Guest for VMWare. [https://github.com/wwiv/os2-guest]\r\n\r\n");
-
-  if (argc <= 1) {
-    return vmtools_daemon();
-  }
+  printf("vmtools: OS/2 Guest for VMWare. [https://github.com/wwiv/os2-guest]\r\n\r\n");
 
   // Interactive mode
 
@@ -176,7 +181,8 @@ int main(int argc, char* argv[]) {
       if (alen < 2) {
 	continue;
       }
-      // Process switch
+      // Process switch.  If this should not go to a daemon
+      // then exit while processing the command.
       char schar = (char)toupper(*(arg+1));
       const char* sval = (arg+2);
       switch (schar) {
@@ -184,12 +190,22 @@ int main(int argc, char* argv[]) {
 	return exit_app();
       case '?':
         return show_help();
+      case 'D': {
+	if (sval) {
+	  set_loglevel(atoi(sval));
+	}
+      } break;
+      case 'L': {
+	if (sval) {
+	  set_logfile(sval);
+	}
+      } break;
       }
       continue;
     }
   } 
 
-  fprintf(stdout, "exiting.");
-  return 0;
+  return vmtools_daemon();
 }
+
 

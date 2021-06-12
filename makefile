@@ -13,9 +13,10 @@ SYSTEM	= os2v2
 
 # Binary and Objects
 EXE	= vmtools.exe
-OBJS 	= backdoor.obj &
-	guest.obj &
-	host.obj &
+OBJS 	= backdoor.obj 	&
+	log.obj 	&
+	guest.obj 	&
+	host.obj 	&
 	vmtools.obj
 
 #########################################################
