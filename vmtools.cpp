@@ -35,7 +35,7 @@
 #define NAME_SEG "\\SHAREMEM\\VMTOOLS.MEM"
 
 int vmtools_daemon() {
-  printf("Starting Daemon...\r\n");
+  printf("Press ESCAPE to exit.\r\nStarting Daemon...\r\n");
   char* shm = NULL;
   APIRET rc = DosAllocSharedMem((PVOID *) &shm,
 				NAME_SEG,
@@ -48,7 +48,6 @@ int vmtools_daemon() {
   }
   
 
-  fprintf(stdout, "Press ESCAPE to exit.\r\n");
   KBDKEYINFO key;
   Host host;
   Guest guest;
@@ -149,10 +148,7 @@ int exit_app() {
 }
 
 int main(int argc, char* argv[]) {
-  fprintf(stdout, "VMTools: OS2 Guest for VMWare.\r\n"
-	  "See https://github.com/wwiv/os2-guest for more information.\r\n\r\n"
-	  "This program uses portions of [https://github.com/vmware/open-vm-tools]\r\n"
-	  "which are licensed under the GNU Lesser General Public Library, version 2.1\r\n");
+  fprintf(stdout, "vmtools: OS/2 Guest for VMWare. [https://github.com/wwiv/os2-guest]\r\n\r\n");
 
   if (argc <= 1) {
     return vmtools_daemon();
