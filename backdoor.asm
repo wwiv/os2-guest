@@ -20,7 +20,7 @@
 DGROUP  group   _DATA
 
 _DATA   segment word public 'DATA'
-		
+
 ;; MAGIC number to send to backdoor api
 BDOOR_MAGIC	equ	564D5868H
 	
@@ -38,23 +38,33 @@ _TEXT   segment word public 'CODE'
 	;; int Backdoor(int)
 	public Backdoor_
 Backdoor_	proc	near
+		push ebx
+		push ecx
+		push edx
  		mov ecx, eax
 		mov eax, BDOOR_MAGIC
 		mov ebx, 0
 		mov dx, BDOOR_PORT
 		in eax, dx
+		pop edx
+		pop ecx
+		pop ebx
 		ret
 Backdoor_	endp
 	
 	;; int Backdoor2(int, int)
 	public Backdoor2_
 Backdoor2_	proc	near
+		push ebx
+		push ecx
  		mov ecx, eax
 		mov ebx, edx
 		;; 		xor edx, edx
 		mov eax, BDOOR_MAGIC
 		mov dx, BDOOR_PORT
 		in eax, dx
+		pop ecx
+		pop ebx
 		ret
 Backdoor2_	endp
 	
