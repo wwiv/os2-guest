@@ -27,7 +27,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <iostream>
 
 
 /* From https://sites.google.com/site/chitchatvmback/backdoor
@@ -112,7 +111,7 @@ static void get_host_clipboard(int32_t len, char* buf) {
 char* Host::clipboard() {
   const int32_t len = Backdoor(BACKDOOR_CMD_GET_CLIPBOARD_LEN);
   if (len <= 0) {
-    std::cout << "alloc failed" << std::endl;
+    puts("alloc failed\r\n");
     return NULL;
   }
   char* buf;
@@ -120,8 +119,8 @@ char* Host::clipboard() {
 			     NULL, len+1, 
 			     PAG_COMMIT | PAG_WRITE | OBJ_GIVEABLE);
   if (rc != NO_ERROR) {
-    std::cout << "alloc failed" << std::endl;
-    return false;
+    puts("alloc failed\r\n");
+    return NULL;
   }
   get_host_clipboard(len, buf);
   return buf;

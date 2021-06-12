@@ -21,7 +21,6 @@
 #include <stdint.h>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
 
 #define INCL_PM
 #define INCL_DOS

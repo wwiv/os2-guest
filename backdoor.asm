@@ -59,7 +59,6 @@ Backdoor2_	proc	near
 		push ecx
  		mov ecx, eax
 		mov ebx, edx
-		;; 		xor edx, edx
 		mov eax, BDOOR_MAGIC
 		mov dx, BDOOR_PORT
 		in eax, dx
