@@ -51,21 +51,26 @@ int vmtools_daemon() {
   KBDKEYINFO key;
   Host host;
   Guest guest;
-  bool pointer_host = pointer_in_host(host.pointer());
+  host_point hp = host.pointer();
+  bool pointer_host = pointer_in_host(hp);
   bool mouse_hidden = false;
 
   for (;;) {
     KbdPeek(&key, 0);
-    if (key.fbStatus != 0 && key.chChar == 27 /* ESC */) {
-      puts("Exiting...\r\n");
-      break;
+    if (key.fbStatus != 0) {
+      APIRET krc = KbdCharIn(&key, IO_WAIT, 0);
+      printf("got key: [%d]\r\n", key.chChar);
+      if (key.chChar == 27 /* ESC */) {
+	puts("Exiting...\r\n");
+	break;
+      }
     }
 
-    host_point hp = host.pointer();
+    hp = host.pointer();
     //printf("pointer in host[%d], pointer_host[%d,%d]\r\n", 
     //   pointer_in_host(hp), hp.x, hp.y);
     if (pointer_in_host(hp) && !pointer_host) {
-      puts("pointer back in host");
+      printf("pointer back in host");
       // Moved to the host
       pointer_host = true;
       char* c = guest.clipboard();
@@ -75,23 +80,25 @@ int vmtools_daemon() {
       }
       // Hide mouse if it's visible.
       if (!mouse_hidden) {
+	puts("mouse hidden\r\n");
 	guest.pointer_visible(false);
         mouse_hidden = true;
       }
     } else if (!pointer_in_host(hp) && pointer_host) {
       puts("pointer back in guest\r\n");
       pointer_host = false;
-      char* c = host.clipboard();
-      if (c) {
-	//printf("Set guest clipboard: [%s]\r\n", c);
-	guest.clipboard(c);
-      }
       // Set the guest pointer to match.
       guest_point gp = guest.host_to_guest(hp);
       guest.pointer(gp);
       if (mouse_hidden) {
 	guest.pointer_visible(true);
 	mouse_hidden = false;
+      }
+
+      char* c = host.clipboard();
+      if (c) {
+	//printf("Set guest clipboard: [%s]\r\n", c);
+	guest.clipboard(c);
       }
     }
 
@@ -113,6 +120,9 @@ int vmtools_daemon() {
     DosSleep(100);
   }
 
+  if (mouse_hidden) {
+    guest.pointer_visible(true);
+  }
   DosFreeMem(shm);
   return 0;
 }

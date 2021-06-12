@@ -52,65 +52,24 @@
 #define BACKDOOR_CMD_SET_CLIPBOARD_TEXT 0x09
 
 
-/** 
- * Gets the host clipboard length in bytes. 
- * returns <0 on error
- */
-int32_t backdoor_get_clipbopard_len() {
-  return Backdoor(BACKDOOR_CMD_GET_CLIPBOARD_LEN);
-}
-
-/** 
- * Gets the next 4 bytes of the clipboard or 0 if none are available.
- * returns <0 on error
- */
-int32_t backdoor_get_host_clipbopard_text_piece() {
-  return Backdoor(BACKDOOR_CMD_GET_CLIPBOARD_TEXT);
-}
-
-void get_host_clipboard(int32_t size, char* buf) {
-   uint32_t *current = (uint32_t *)buf;
-   uint32_t const *end = current + (size + sizeof(uint32_t) - 1) / sizeof(uint32_t);
-   for (; current < end; current++) {
-      *current = backdoor_get_host_clipbopard_text_piece();
-   }
-}
-
-int32_t set_host_clipboard_len(uint32_t len) {
-  return Backdoor2(BACKDOOR_CMD_SET_CLIPBOARD_LEN, len);
-}
-
-void set_host_clipboard_text_piece(uint32_t data) {
-  Backdoor2(BACKDOOR_CMD_SET_CLIPBOARD_TEXT, data);
-}
-
 void set_host_clipboard(char* buf, uint32_t len) {
-  set_host_clipboard_len(len);
+  if (!buf) {
+    return;
+  }
+  //fprintf(stdout, "set_host_clipboard: len: %d; buf: '%s'", len, buf); fflush(stdout);
+  Backdoor2(BACKDOOR_CMD_SET_CLIPBOARD_LEN, len);
   uint32_t* p = (uint32_t*) buf;
   for (int i = 0; i < len; i += sizeof(uint32_t)) {
-    set_host_clipboard_text_piece(*p++);
+    //fprintf(stdout, "set_host_clipboard_text_piece: %d/%d [%c]\r\n", i, len, (char*) *p); fflush(stdout);
+    Backdoor2(BACKDOOR_CMD_SET_CLIPBOARD_TEXT, *p++);
   }
-}
-
-static void set_mouse_pos(int x, int y) {
-  uint32_t pos = (x << 16) | y;
-  Backdoor2(BACKDOOR_CMD_SET_MOUSE_POS, pos);
-}
-
-static bool get_mouse_pos(int16_t* x, int16_t* y) {
-  uint32_t pos = Backdoor(BACKDOOR_CMD_GET_MOUSE_POS);
-  *x = pos >> 16;
-  *y = pos & 0xFFFF;
-
-  return true;
+  free(buf);
 }
 
 static const int16_t XPOS_IN_HOST = -100;
 
 bool pointer_in_host(const host_point& pos) {
-  bool b = pos.x == XPOS_IN_HOST;
-  //printf("pointer_in_host [%d, %d]\r\n", pos.x, XPOS_IN_HOST);
-  return b;
+  return pos.x == XPOS_IN_HOST;
 }
 
 Host::Host() {}
@@ -118,12 +77,16 @@ Host::~Host() {}
 
 host_point Host::pointer() {
   host_point pos;
-  get_mouse_pos(&pos.x, &pos.y);
+  
+  uint32_t i = Backdoor(BACKDOOR_CMD_GET_MOUSE_POS);
+  pos.x = i >> 16;
+  pos.y = i & 0xffff;
   return pos;
 }
 
 bool Host::pointer(const host_point& pos) {
-  set_mouse_pos(pos.x, pos.y);
+  uint32_t d = (pos.x << 16) | pos.y;
+  Backdoor2(BACKDOOR_CMD_SET_MOUSE_POS, d);
   return true;
 }
 
@@ -136,46 +99,31 @@ bool Host::clipboard(char* b) {
   return true;
 }
 
+static void get_host_clipboard(int32_t len, char* buf) {
+   uint32_t *current = (uint32_t *)buf;
+   uint32_t const *end = current + (len + sizeof(uint32_t) - 1) / sizeof(uint32_t);
+   for (; current < end; current++) {
+     // Gets the next 4 bytes of the clipboard or 0 if none are available.
+      *current = Backdoor(BACKDOOR_CMD_GET_CLIPBOARD_TEXT);
+   }
+}
+
+
 char* Host::clipboard() {
-  const int32_t len = backdoor_get_clipbopard_len();
+  const int32_t len = Backdoor(BACKDOOR_CMD_GET_CLIPBOARD_LEN);
   if (len <= 0) {
     std::cout << "alloc failed" << std::endl;
     return NULL;
   }
-  char* b;
-  APIRET rc = DosAllocSharedMem((PPVOID)&b,
+  char* buf;
+  APIRET rc = DosAllocSharedMem((PPVOID)&buf,
 			     NULL, len+1, 
 			     PAG_COMMIT | PAG_WRITE | OBJ_GIVEABLE);
   if (rc != NO_ERROR) {
     std::cout << "alloc failed" << std::endl;
     return false;
   }
-  get_host_clipboard(len, b);
-  return b;
+  get_host_clipboard(len, buf);
+  return buf;
 }
-
-
-/*
-int main(int argc, char* argv) {
-  Host b;
-  char* clip =  b.clipboard();
-  if (clip) {
-    std::cout << "Clip: " << clip << std::endl;
-    DosFreeMem(clip);
-  } else {
-    std::cout << "[no clipboard]" << std::endl;
-  }
-
-  host_point pos;
-  for (;;) {
-    host_point pos = b.pointer();
-    std::cout << "pos: " << pos.x 
-	      << ", " << pos.y << std::endl;
-    DosSleep(500);
-  }
-  std::cout << "end\r\n";
-}
-*/
-
-
 

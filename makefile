@@ -6,8 +6,8 @@ CC = wcl386
 AS = wasm
 
 # debug info and warning level 3
-CFLAGS	= -d2 -w3
-ASFLAGS = -d2
+CFLAGS	= -d1 -w3
+ASFLAGS = -d1
 LDFLAGS = debug all
 SYSTEM	= os2v2
 
