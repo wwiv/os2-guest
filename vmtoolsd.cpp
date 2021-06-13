@@ -61,7 +61,6 @@ int vmtools_daemon() {
   }
 
   memset(shm, 0, NUMBER_OF_BYTES);
-  
 
   KBDKEYINFO key;
   Host host;
@@ -144,38 +143,6 @@ int vmtools_daemon() {
   return 0;
 }
 
-int show_help() {
-  printf(
-    "Usage: \r\n"
-    "  vmtools [args]\r\n\r\n"
-    "Example: \r\n"
-    "  vmtools\r\n\r\n"
-    "Commands: \r\n"
-    "  -Q             Terminates daemon if any exists.\r\n"
-    "  -?             Help - displays this information\r\n"
-    "  -D#            Set debug level to # (from 1 to 4)r\n"
-    "  -L[FILENAME]   Log debug logs to filename [FILENAME]\r\n"
-    "\r\n");
-  return 0;
-}
-
-int exit_app() {
-  char* shm;
-  APIRET rc = DosGetNamedSharedMem((PVOID *) &shm,
-				   NAME_SEG,
-				   PAG_READ|PAG_WRITE);
-  if (rc != NO_ERROR) {
-    logf(0, "Failed to connect to SHM: %d\r\n", rc);
-    return 1;
-  }
-  log(0, "Sending quit signal.\r\n");
-
-  *shm = 'Q';
-  DosSleep(1000);
-  DosFreeMem(shm);
-  return 0;
-}
-
 int main(int argc, char* argv[]) {
   printf("vmtools: OS/2 Guest for VMWare. [https://github.com/wwiv/os2-guest]\r\n\r\n");
 
@@ -196,10 +163,6 @@ int main(int argc, char* argv[]) {
       char schar = (char)toupper(*(arg+1));
       const char* sval = (arg+2);
       switch (schar) {
-      case 'Q':
-	return exit_app();
-      case '?':
-        return show_help();
       case 'D': {
 	if (sval) {
 	  set_loglevel(atoi(sval));
