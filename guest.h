@@ -61,6 +61,7 @@ class Guest {
   unsigned long hab_;
   unsigned long hmq_;
   unsigned long screen_max_y_;
+  guest_point last_point_;
 };
 
 

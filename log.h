@@ -23,7 +23,7 @@ void log(const char* s);
 void log(int lvl, const char* s);
 void logf(int lvl, const char* msg, ...);
 
-#define LOG_FUNCTION()  log(2, __FUNCTION__)
+#define LOG_FUNCTION()  log(3, __FUNCTION__)
 
 
 #endif

@@ -34,6 +34,15 @@
 
 #include <os2.h>
 
+// shared memory layout
+// byte 0: command
+// byte 1-15: command args
+// byte 16-255: response from command
+// commands:
+// Q : quit
+// S : Status (display stats in 16+)
+// R : Reply  (Server responded)
+
 #define NUMBER_OF_BYTES 255
 #define NAME_SEG "\\SHAREMEM\\VMTOOLS.MEM"
 
@@ -50,6 +59,8 @@ int vmtools_daemon() {
     logf(0, "Failed to allocate shared memory: %d\r\n", rc);
     return 1;
   }
+
+  memset(shm, 0, NUMBER_OF_BYTES);
   
 
   KBDKEYINFO key;
@@ -97,7 +108,7 @@ int vmtools_daemon() {
       }
       char* c = host.clipboard();
       if (c) {
-	logf(2, "Set guest clipboard: [%s]\r\n", c);
+	logf(3, "Set guest clipboard: [%s]\r\n", c);
 	guest.clipboard(c);
       }
 
@@ -112,8 +123,7 @@ int vmtools_daemon() {
       guest_point gp = guest.pointer();
       host_point hp = guest.guest_to_host(gp);
       host.pointer(hp);
-      logf(1, "[guest]pointer[%d,%d]\r\n", 
-	  gp.x, gp.y);
+      logf(4, "[guest]pointer[%d,%d]\r\n", gp.x, gp.y);
     }
 
     // TODO check for shutdown signal if running as a daemon.
@@ -123,7 +133,7 @@ int vmtools_daemon() {
 	log(0, "Got signal to quit.\r\n");
 	break;
       }
-    } 
+    }
     DosSleep(100);
   }
 

@@ -35,6 +35,9 @@ Guest::Guest() {
   DosGetInfoBlocks(&ptib, &ppib);
   ppib->pib_ultype = 3;
 
+  last_point_.x = -1;
+  last_point_.y = -1;
+
   // TODO(rushfan): Check for errors here.
   hab_ = WinInitialize(0L);
   if (!hab_) {
@@ -64,6 +67,15 @@ guest_point Guest::pointer() {
   guest_point guest_pos;
   guest_pos.x = pos.x;
   guest_pos.y = pos.y;
+
+  if (last_point_.x != pos.x && last_point_.y != pos.y) {
+    logf(1, "new pos: [%d, %d]; old: [%d,%d]", pos.x, pos.y, last_point_.x, last_point_.y);
+    last_point_.x = pos.x;
+    last_point_.y = pos.y;
+  } else {
+    logf(4, "remaining at last point: [%d, %d]", pos.x, pos.y);
+  }
+
   return guest_pos;
 }
 
@@ -73,9 +85,13 @@ bool Guest::pointer(const guest_point& pos) {
   if (!WinSetPointerPos(HWND_DESKTOP, pos.x, pos.y)) {
     logf(0, "failed to set pointer pos: %d", WinGetLastError(hab_));
   }
-  POINTL p2;
-  WinQueryPointerPos(HWND_DESKTOP, &p2);
-  logf(1, "new pos: [%d, %d]", p2.x, p2.y);
+  if (last_point_.x != pos.x && last_point_.y != pos.y) {
+    logf(1, "new pos: [%d, %d]; old: [%d,%d]", pos.x, pos.y, last_point_.x, last_point_.y);
+    last_point_.x = pos.x;
+    last_point_.y = pos.y;
+  } else {
+    logf(4, "remaining at last point: [%d, %d]", pos.x, pos.y);
+  }
   return true;
 }
 
@@ -85,12 +101,10 @@ bool Guest::pointer_visible(bool visible) {
   return true;
 }
 
-
 /** Sets the guest clipboard contents or releases b if that fails. */
 bool Guest::clipboard(char* b) {
-  LOG_FUNCTION();
   if (WinOpenClipbrd(hab_)) {
-    log(2, "opened clipboard");
+    log(3, "opened clipboard");
     WinEmptyClipbrd(hab_);
     WinSetClipbrdData(hab_, (ULONG) b, CF_TEXT, CFI_POINTER);
     WinCloseClipbrd(hab_);
