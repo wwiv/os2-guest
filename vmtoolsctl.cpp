@@ -14,6 +14,7 @@
  *   either  express  or implied.  See  the  License for  the specific
  *   language governing permissions and limitations under the License.
  */
+#include "config.h"
 #include "guest.h"
 #include "host.h"
 #include "log.h"
@@ -77,7 +78,8 @@ int exit_app() {
 }
 
 int main(int argc, char* argv[]) {
-  printf("vmtools: OS/2 Guest for VMWare. [https://github.com/wwiv/os2-guest]\r\n\r\n");
+  printf("vmtools: OS/2 Guest for VMWare %s; [https://github.com/wwiv/os2-guest]\r\n\r\n", 
+	 VMTOOLS_VERSION);
 
   // Interactive mode
 

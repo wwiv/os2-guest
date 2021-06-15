@@ -1,4 +1,4 @@
-OS/2 Guest support for VMWare
+OS/2 Guest support for VMWare @VMTOOLS_VERSION@
 
 OS/2 Guest support for VMWare provides the following guest services for OS/2
 guests running under VMWare:
