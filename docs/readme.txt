@@ -5,6 +5,7 @@ guests running under VMWare:
 
 * Clipboard Syncronization - the contents of the clipboard are shared between
   the guest and the host.
+
 * Mouse pointer synchronization - The mouse pointer can leave the guest VM
   without needing to ungrab it (Alt-Control).  Also when the mouse pointer
   is grabbed by the guest, usually when you click inside the VM, the mouse
@@ -16,10 +17,14 @@ Installation
 
 1) Put vmtoolsd.exe and vmtoolsctl.exe in some directory in your path,
    such as C:\usr\local\bin or C:\bin or the like.
-2) Add a line in C:\startup.cmd to launch vmtoolsd.exe.  You don't need
-   to specify any paramater.  
+
+2) Add a line in C:\startup.cmd to launch vmtoolsd.exe using "start /PM".
+   You don't need to specify any paramater.  Example:
+   
+   start /PM C:\BIN\VMTOOLSD.EXE
+
 3) If you don't want to automatically start it when os/2 boots up, you
-   may run it manually.
+   may run it manually using the same command as in startup.cmd. 
 
 
 Use
@@ -35,18 +40,17 @@ To enable debugging you can use the following parameters to vmtoolsd.exe
 
 Example:
 
-	vmtoolsd.exe -D3 -LC:\logs\vmtoolsd.log
+	START /PM vmtoolsd.exe -D3 -LC:\logs\vmtoolsd.log
 
 
 
 Known Limitations
 =================
 * The mouse pointer synchronization doesn't work when run from a RUN= line
-  in config.sys, or startup.cmd or detaching in the current command
-  prompt, only when run from a command session prompt.
+  in config.sys, or startup.cmd without using "START /PM" or detaching 
+  in the current command prompt, only when run from a command session prompt.
 
 See http://github.com/wwiv/os2-guest/issues for the full list.
-
 
 
 Soure Code and Help
