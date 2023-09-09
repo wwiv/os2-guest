@@ -65,7 +65,8 @@ bool set_host_clipboard_internal(char* buf, uint32_t len) {
   Backdoor2(BACKDOOR_CMD_SET_CLIPBOARD_LEN, len);
   p = (uint32_t*) buf;
   for (i = 0; i < len; i += sizeof(uint32_t)) {
-    //fprintf(stdout, "set_host_clipboard_text_piece: %d/%d [%c]\r\n", i, len, (char*) *p); fflush(stdout);
+    // fprintf(stdout, "set_host_clipboard_text_piece: %d/%d [%c]\r\n", 
+    // i, len, (char*) *p); fflush(stdout);
     Backdoor2(BACKDOOR_CMD_SET_CLIPBOARD_TEXT, *p++);
   }
 

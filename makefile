@@ -2,11 +2,11 @@
 # Makefile: OS/2 Guest Tools for VMWare
 #
 
-VERSION = 1.0
+VERSION = 1.0.1
 CC 	= wcl386
 AS 	= wasm
 
-# debug info and warning level 3
+# Add full debug info and warning level 3
 CFLAGS		= -d3 -w3 -hw
 ASFLAGS 	= -d1
 LDFLAGS 	= debug all
@@ -74,6 +74,11 @@ clean: .SYMBOLIC
 	-del $(VMTOOLSD_EXE)
 	-rm -fr $(DIST_DIR)
 	-del $(DIST_ZIP)
+
+
+
+
+
 
 
 
