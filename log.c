@@ -14,42 +14,61 @@
  *   either  express  or implied.  See  the  License for  the specific
  *   language governing permissions and limitations under the License.
  */
-#ifndef INCLUDED_HOST_H
-#define INCLUDED_HOST_H
+#include "log.h"
 
+// Use stdint.h vs. cstdint so types are in global namespace, not std::
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdint.h>
-#include "vmtypes.h"
+#include <stdlib.h>
+#include <string.h>
+
+#define INCL_PM
+#define INCL_DOS
+#define INCL_ERRORS
+#include <os2.h>
+
+// Logs at a higheer level than threshold will not be logged.
+static int LOG_THRESHOLD = 0;
+static FILE* logh = stderr;
+
+void set_loglevel(int lvl) {
+  LOG_THRESHOLD = lvl;
+}
+
+void set_logfile(const char* fn) {
+  logh = fopen(fn, "a");
+  if (!logh) {
+    logh = stderr;
+  }
+}
+
+void log(const char* s) {
+  fprintf(logh, "%s\r\n", s);
+  fflush(logh);
+}
 
 /**
- * Represents a point on the Host, in the format of the host operating
- * system.
+ * Log at log level lvl. 
+ * higher levels mean more logging.  Use 1-4.
  */
-typedef struct {
-  int16_t x;
-  int16_t y;
-} host_point ;
+void logl(int lvl, const char* s) {
+  if (lvl <= LOG_THRESHOLD) {
+    log(s);
+  }
+}
 
-bool pointer_in_host(const host_point* pos);
-
-/**
- * Module for interfacing with a VMWare Host through the
- * Host Backdoor API
- */
-
-/** Gets the host pointer position */
-bool get_host_pointer(host_point* pos);
-
-/** Sets the host pointer position */
-bool set_host_pointer(const host_point* pos);
-
-/** Sets the host clipboard contents */
-bool set_host_clipboard(char* b);
-
-/** Gets the host clipboard contents or NULL if none exist */
-char* get_host_clipboard();
+void loglf(int lvl, const char* msg, ...) {
+  char buf[1024];
+  va_list argptr;
+  va_start(argptr, msg);
+  vsprintf(buf, msg, argptr);
+  va_end(argptr);
+  logl(lvl, buf);
+}
 
 
-#endif
+
 
 
 

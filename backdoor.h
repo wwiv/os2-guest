@@ -17,10 +17,8 @@
 #ifndef INCLUDED_BACKDOOR_H
 #define INCLUDED_BACKDOOR_H
 
-extern "C" {
 extern int Backdoor(int);
 extern int Backdoor2(int, int);
-}
 
 
 #endif

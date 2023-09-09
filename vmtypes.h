@@ -14,45 +14,13 @@
  *   either  express  or implied.  See  the  License for  the specific
  *   language governing permissions and limitations under the License.
  */
-#ifndef INCLUDED_HOST_H
-#define INCLUDED_HOST_H
+#ifndef INCLUDED_VMTYPES_H
+#define INCLUDED_VMTYPES_H
 
 #include <stdint.h>
-#include "vmtypes.h"
 
-/**
- * Represents a point on the Host, in the format of the host operating
- * system.
- */
-typedef struct {
-  int16_t x;
-  int16_t y;
-} host_point ;
+typedef int bool;
+#define true 1
+#define false 0
 
-bool pointer_in_host(const host_point* pos);
-
-/**
- * Module for interfacing with a VMWare Host through the
- * Host Backdoor API
- */
-
-/** Gets the host pointer position */
-bool get_host_pointer(host_point* pos);
-
-/** Sets the host pointer position */
-bool set_host_pointer(const host_point* pos);
-
-/** Sets the host clipboard contents */
-bool set_host_clipboard(char* b);
-
-/** Gets the host clipboard contents or NULL if none exist */
-char* get_host_clipboard();
-
-
-#endif
-
-
-
-
-
-
+#endif // INCLUDED_VMTYPES_H

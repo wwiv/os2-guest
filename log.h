@@ -20,10 +20,11 @@
 void set_loglevel(int lvl);
 void set_logfile(const char* fn);
 void log(const char* s);
-void log(int lvl, const char* s);
-void logf(int lvl, const char* msg, ...);
+void logl(int lvl, const char* s);
+void loglf(int lvl, const char* msg, ...);
 
-#define LOG_FUNCTION()  log(3, __FUNCTION__)
+#define LOG_FUNCTION() do { logl(3, __FUNCTION__); } while (0)
 
 
 #endif
+

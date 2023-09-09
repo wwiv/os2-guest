@@ -7,7 +7,7 @@ CC 	= wcl386
 AS 	= wasm
 
 # debug info and warning level 3
-CFLAGS		= -d1 -w3
+CFLAGS		= -d3 -w3 -hw
 ASFLAGS 	= -d1
 LDFLAGS 	= debug all
 SYSTEM		= os2v2
@@ -29,7 +29,7 @@ VMTOOLSCTL_OBJS = log.obj 	&
 #########################################################
 # Makefile rules 
 
-.cpp.obj:
+.c.obj:
 	$(CC) $(CFLAGS) -c $<
 
 .asm.obj:
