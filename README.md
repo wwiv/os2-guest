@@ -8,12 +8,12 @@ for the backdoor API for VMWare.
 
 # Prerequisites
 
-os2-guest needs cmake and gcc 9.2.
+os2-guest needs watcom 1.9 for OS/2
 
 
 # Get the source
 
-- Clone the repository then build with cmake.
+- Clone the repository then build with wmake.
 
 ```
 git clone https://github.com/wwiv/os2-guest
@@ -22,23 +22,22 @@ git clone https://github.com/wwiv/os2-guest
 # Building
 
 ```
-mkdir _b
-cd _b
-cmake ..
-cmake --build .
+wmake
 ```
-
-Next time you build you only need the last line:
-```
-cmake --build .
-```
-
 
 # Running
-Just run os2-guest.exe
+Just run vmtoolsd.exe
 
-There's no command line arguments, just run it and ignore it.  To exit it, type the ESCAPE key
-in the console running it.
+If you would like debug logs, add -D# and -Llogfilename to the commandline of vmtoolsd.exe
+where # is a number from 1-10, the higher number the more log data that will be written
+to the file specified by the -L parameter.
+
+# Stopping
+Use vmtoolsctl to stop. Example:
+```
+vmtoolsctl -q
+```
+
 
 
 
