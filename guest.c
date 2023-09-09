@@ -27,11 +27,14 @@
 #define INCL_PM
 #define INCL_DOS
 #define INCL_ERRORS
+#define INCL_DOSPROCESS
 #include <os2.h>
 
 bool guest_init(guest_info* guest) {
   PTIB ptib;
   PPIB ppib;
+  APIRET rc = NO_ERROR;
+
   DosGetInfoBlocks(&ptib, &ppib);
   ppib->pib_ultype = 3;
 
@@ -52,6 +55,15 @@ bool guest_init(guest_info* guest) {
 
   guest->screen_max_y_ = WinQuerySysValue(HWND_DESKTOP, SV_CYSCREEN);
   loglf(2, "Screen size max y: [%d]\r\n", guest->screen_max_y_);
+
+  // Lower priority to use less CPU
+  rc = DosSetPriority(PRTYS_PROCESS, 
+		      PRTYC_IDLETIME, 
+		      0, /* no delta */
+		      0 /* current process */ );
+  if (rc != NO_ERROR) {
+    loglf(0, "Error setting priority, rc=%d", rc);
+  }
   return true;
 }
 
