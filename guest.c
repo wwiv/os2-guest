@@ -31,13 +31,7 @@
 #include <os2.h>
 
 bool guest_init(guest_info* guest) {
-  PTIB ptib;
-  PPIB ppib;
   APIRET rc = NO_ERROR;
-
-  DosGetInfoBlocks(&ptib, &ppib);
-  ppib->pib_ultype = 3;
-
   memset(guest, 0, sizeof(guest_info));
 
   guest->last_point_.x = -1;
@@ -145,10 +139,13 @@ char* get_guest_clipboard(guest_info* guest) {
   logl(2, "WinOpenClipbrd: succeed");
   if (WinQueryClipbrdFmtInfo(guest->hab_, CF_TEXT, &fmtInfo)) {
     const char *text = (const char*)WinQueryClipbrdData(guest->hab_, CF_TEXT); 
-    logl(3, "Has text in clipboard");
-    if (text) {
+    logl(2, "WinQueryClipbrdFmtInfo: succeed");
+    if (text && *text) {
+      loglf(3, "Has text in clipboard: [%s]", text);
       ret = strdup(text);
       logl(1, "contents assigned");
+    } else {
+      logl(1, "it was empty");
     }
   }
 

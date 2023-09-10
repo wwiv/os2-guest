@@ -17,6 +17,7 @@
 #include "guest.h"
 #include "host.h"
 #include "log.h"
+#include "vmtypes.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -45,19 +46,42 @@
 
 #define NUMBER_OF_BYTES 255
 #define NAME_SEG "\\SHAREMEM\\VMTOOLS.MEM"
+#define NAME_PIPE "\\PIPE\\VMTOOLSD"
+
+static bool pm_mode = true;
+
+typedef struct {
+  HPIPE handle;
+  HEV hev;
+} pipe_t;
+
+bool create_pipe(pipe_t* pipe) {
+  return true;
+}
+
+void gopm() {
+  PTIB ptib;
+  PPIB ppib;
+
+  DosGetInfoBlocks(&ptib, &ppib);
+  ppib->pib_ultype = PT_PM;
+}
 
 int vmtools_daemon() {
   char* shm = NULL;
   APIRET rc = NO_ERROR;
-  KBDKEYINFO key;
   guest_info guest;
   host_point hp;
   bool mouse_hidden = false;
   bool pointer_host = false;
 
   LOG_FUNCTION();
+  printf("Starting Daemon...\r\n");
+
+  if (pm_mode) {
+    gopm();
+  }
   guest_init(&guest);
-  printf("Press ESCAPE to exit.\r\nStarting Daemon...\r\n");
   rc = DosAllocSharedMem((PVOID *) &shm,
 			 NAME_SEG,
 			 NUMBER_OF_BYTES,
@@ -77,17 +101,7 @@ int vmtools_daemon() {
   pointer_host = pointer_in_host(&hp);
 
   for (;;) {
-    APIRET krc = NO_ERROR;
-    KbdPeek(&key, 0);
-    if (key.fbStatus != 0) {
-      krc = KbdCharIn(&key, IO_WAIT, 0);
-      loglf(4, "got key: [%d]\r\n", key.chChar);
-      if (key.chChar == 27 /* ESC */) {
-	puts("Exiting...\r\n");
-	break;
-      }
-    }
-
+    
     if (!get_host_pointer(&hp)) { 
       // error
       loglf(1, "Failed to get host pointer");
@@ -190,6 +204,9 @@ int main(int argc, char* argv[]) {
       schar = (char)toupper(*(arg+1));
       sval = (arg+2);
       switch (schar) {
+      case 'C': {
+	pm_mode = false;
+      } break;
       case 'D': {
 	if (sval) {
 	  set_loglevel(atoi(sval));

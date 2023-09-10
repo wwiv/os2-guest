@@ -7,8 +7,8 @@ CC 	= wcl386
 AS 	= wasm
 
 # Add full debug info and warning level 3
-CFLAGS		= -d3 -w3 -hw
-ASFLAGS 	= -d1
+CFLAGS		= -d2 -w3 -hw
+ASFLAGS 	= -d2
 LDFLAGS 	= debug all
 SYSTEM		= os2v2
 SYSTEM_PM	= os2v2_pm
@@ -35,14 +35,17 @@ VMTOOLSCTL_OBJS = log.obj 	&
 .asm.obj:
 	$(AS) $(ASFLAGS) $<
 
-all:	config.h $(VMTOOLSD_EXE) $(VMTOOLSCTL_EXE)
+all:	config.h $(VMTOOLSD_EXE) $(VMTOOLSCTL_EXE) $(VMTOOLSC_EXE)
 
 .BEFORE
 config.h: config.h.in 
 	sed s/@VMTOOLS_VERSION@/$(VERSION)/ $< > $@
 
 $(VMTOOLSD_EXE): config.h $(VMTOOLSD_OBJS)
-	wlink system $(SYSTEM_PM) $(LDFLAGS) name $(VMTOOLSD_EXE) &
+	wlink &
+	$(LDFLAGS) &
+	system $(SYSTEM_PM) &
+        name $(VMTOOLSD_EXE) &
         file {$(VMTOOLSD_OBJS)}
 
 $(VMTOOLSCTL_EXE): config.h $(VMTOOLSCTL_OBJS)
